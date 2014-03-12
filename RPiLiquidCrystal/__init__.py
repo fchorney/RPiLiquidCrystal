@@ -44,25 +44,15 @@ class LCD:
     FIVEBYTENDOTS       = 0x04
     FIVEBYEIGHTDOTS     = 0x00
 
+
     def __init__(
-        self, rs, enable,
-        d0, d1, d2, d3,
-        d4, d5, d6, d7,
+        self, rs, enable, data_pins,
         fourbitmode=False, rw=255, cols=16, lines=1, dotsize=0
     ):
         self._rs = rs
         self._rw = rw
         self._enable = enable
-
-        self._data_pins = []
-        self._data_pins[0] = d0
-        self._data_pins[1] = d1
-        self._data_pins[2] = d2
-        self._data_pins[3] = d3
-        self._data_pins[4] = d4
-        self._data_pins[5] = d5
-        self._data_pins[6] = d6
-        self._data_pins[7] = d7
+        self._data_pins = data_pins
 
         RPIO.setup(self._rs, RPIO.OUT)
         # We can save 1 pin by not using RW. Indicate by passing 255 instead

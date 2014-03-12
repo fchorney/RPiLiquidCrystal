@@ -15,9 +15,7 @@ def main():
     try:
         RPIO.setmode(RPIO.BCM)
         lcd = LCD(
-            rs, enable,
-            d4, d5, d6, d7,
-            0, 0, 0, 0,
+            rs, enable, [d4, d5, d6, d7],
             lines=2, fourbitmode=True
         )
         lcd.clear()
