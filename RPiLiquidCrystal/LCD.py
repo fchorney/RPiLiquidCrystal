@@ -45,6 +45,7 @@ class LCD:
     DOTS_5_BY_10            = 0x04
     DOTS_5_BY_8             = 0x00
 
+
     # Justification settings
     JUSTIFY_LEFT            = 0x00
     JUSTIFY_RIGHT           = 0x01
@@ -118,13 +119,18 @@ class LCD:
         self.__command(LCD.SET_DDRAM_ADDR | (col + row_offsets[row]))
 
 
+    def writeRaw(self, location, row, col):
+        self.setCursor(row, col)
+        self.__write(location)
+
+
     def write(self, msg, justify=JUSTIFY_LEFT):
         if justify == LCD.JUSTIFY_RIGHT:
-            msg = msg.rjust(self.columns)
+            msg = msg.rjust(self._columns)
         elif justify == LCD.JUSTIFY_CENTER:
-            msg = msg.center(self.columns)
+            msg = msg.center(self._columns)
         else:
-            msg = msg.ljust(self.columns)
+            msg = msg.ljust(self._columns)
 
         for ch in msg:
             self.__write(ord(ch))
@@ -136,7 +142,7 @@ class LCD:
         location &= 0x07
         self.__command(LCD.SET_CGRAM_ADDR | (location << 3))
         for i in range(0, 8):
-            self.__write(charmap([i]))
+            self.__write(charmap[i])
 
 
     def __begin(self):
@@ -146,7 +152,7 @@ class LCD:
 
         # For some 1 line displays, you can select a 10 pixel high font
         # If dotsize is not 0, assume 5x10 pixel size
-        if self.dotsize != 0 and self.numlines == 1:
+        if self._dotsize != 0 and self._numlines == 1:
             self._display_function |= LCD.DOTS_5_BY_10
 
         # According to the datasheet, we need at least 40 ms after power rises
@@ -160,7 +166,7 @@ class LCD:
             GPIO.output(self._rw, GPIO.LOW)
 
         # Put the LCD into 4 bit or 8 bit mode
-        if not self.display_function & LCD.BIT_MODE_8:
+        if not self._display_function & LCD.BIT_MODE_8:
             # This is according to the hitachi HD44780 datasheet
             # figure 24, pg 46
 
@@ -263,75 +269,84 @@ class LCD:
         self.__delay_microseconds(100)
 
 
-    def enableBacklight(self, intensity=10):
+    def setBrightness(self, intensity):
         # If no backlight pin is assigned, just return
-        if not self.backlight:
+        if not self._backlight:
             return
 
-        # Clamp our intensity to be between 0 and 10
-        if intensity > 10:
-            intensity = 10
+        # Clamp our intensity to be between 0 and 100 percent
+        if intensity > 100:
+            intensity = 100
         if intensity < 0:
             intensity = 0
 
+        # Maximum width is 1999 based on the 20000us subcycle
+        width = int(1999.0 * (intensity / 100.0))
+
         # Set PWM
-        PWM.add_channel_pulse(0, self._backlight, 0, (intensity * 10))
+        PWM.add_channel_pulse(0, self._backlight, 0, width)
+
+
+    def enableBacklight(self):
+        self.setBrightness(100)
+
 
     def disableBacklight(self):
-        self.enableBacklight(intensity=0)
+        self.setBrightness(0)
+
 
     # Turn the display on/off (quickly)
     def noDisplay(self):
-        self._display_control &= ~LCD.DISPLAYON
-        self._command(LCD.DISPLAYCONTROL | self._display_control)
+        self._display_control &= ~LCD.DISPLAY_ON
+        self.__command(LCD.DISPLAY_CONTROL | self._display_control)
 
 
     def display(self):
-        self._display_control |= LCD.DISPLAYON
-        self._command(LCD.DISPLAYCONTROL | self._display_control)
+        self._display_control |= LCD.DISPLAY_ON
+        self.__command(LCD.DISPLAY_CONTROL | self._display_control)
 
 
     # Turns the underline cursor on/off
     def noCursor(self):
-        self._display_control &= ~LCD.CURSORON
-        self._command(LCD.DISPLAYCONTROL | self._display_control)
+        self._display_control &= ~LCD.CURSO_RON
+        self.__command(LCD.DISPLAY_CONTROL | self._display_control)
 
 
     def cursor(self):
-        self._display_control |= LCD.CURSORON
-        self._command(LCD.DISPLAYCONTROL | self._display_control)
+        self._display_control |= LCD.CURSOR_ON
+        self.__command(LCD.DISPLAY_CONTROL | self._display_control)
 
 
     # These commands scroll the display without changing the RAM
     def scrollDisplayLeft(self):
-        self._command(LCD.CURSORSHIFT | LCD.DISPLAYMOVE | LCD.MOVELEFT)
+        self.__command(LCD.CURSOR_SHIFT | LCD.DISPLAY_MOVE | LCD.MOVE_LEFT)
 
 
     def scrollDisplayRight(self):
-        self._command(LCD.CURSORSHIFT | LCD.DISPLAYMOVE | LCD.MOVERIGHT)
+        self.__command(LCD.CURSOR_SHIFT | LCD.DISPLAY_MOVE | LCD.MOVE_RIGHT)
 
 
     # This is for text that flows Left to Right
     def leftToRight(self):
-        self._display_mode |= LCD.ENTRYLEFT;
-        self._command(LCD.ENTRYMODESET | self._display_mode)
+        self._display_mode |= LCD.ENTRY_LEFT;
+        self.__command(LCD.ENTRY_MODE_SET | self._display_mode)
 
 
     # This is for text that flows Right to Left
     def rightToLeft(self):
-        self._display_mode &= ~LCD.ENTRYLEFT;
-        self._command(LCD.ENTRYMODESET | self._display_mode)
+        self._display_mode &= ~LCD.ENTRY_LEFT;
+        self.__command(LCD.ENTRY_MODE_SET | self._display_mode)
 
 
     # This will 'right justify' text from the cursor
     def autoscroll(self):
-        self._display_mode |= LCD.ENTRYSHIFTINCREMENT
-        self._command(LCD.ENTRYMODESET | self._display_mode)
+        self._display_mode |= LCD.ENTRY_SHIFT_INCREMENT
+        self.__command(LCD.ENTRY_MODE_SET | self._display_mode)
 
 
     # This will 'left justify' text from the cursor
     def noAutoscroll(self):
-        self._display_mode &= ~LCD.ENTRYSHIFTINCREMENT
-        self._command(LCD.ENTRYMODESET | self._display_mode)
+        self._display_mode &= ~LCD.ENTRY_SHIFT_INCREMENT
+        self.__command(LCD.ENTRY_MODE_SET | self._display_mode)
 
 

@@ -4,47 +4,94 @@ import RPIO
 import time
 from RPiLiquidCrystal import LCD
 
-PIN = {
-    'GPIO0':   3,
-    'GPIO1':   5,
-    'GPIO4':   7,
-    'GPIO7':  26,
-    'GPIO8':  24,
-    'GPIO9':  21,
-    'GPIO10': 19,
-    'GPIO11': 23,
-    'GPIO14':  8,
-    'GPIO15': 10,
-    'GPIO17': 11,
-    'GPIO18': 12,
-    'GPIO21': 13,
-    'GPIO22': 15,
-    'GPIO23': 16,
-    'GPIO24': 18,
-    'GPIO25': 22,
-}
 
 def main():
     # Rewrite pins for your own specification
-    RS      = PIN['GPIO23']
-    ENABLE  = PIN['GPIO24']
-    D4      = PIN['GPIO17']
-    D5      = PIN['GPIO4']
-    D6      = PIN['GPIO22']
-    D7      = PIN['GPIO18']
+    RS          = 17
+    ENABLE      = 25
+    BACKLIGHT   = 18
+    D4          = 27
+    D5          = 24
+    D6          = 22
+    D7          =  4
+
+    CUSTOM_CHARS = {
+        0: [
+            0b00000,
+            0b10001,
+            0b10001,
+            0b10001,
+            0b00000,
+            0b10001,
+            0b01110,
+            0b00000
+        ],
+        1: [
+            0b00000,
+            0b10001,
+            0b10001,
+            0b10001,
+            0b00000,
+            0b01110,
+            0b10001,
+            0b00000
+        ]
+    }
+
+
+    # Setup LCD Screen
+    lcd = LCD(
+        RS, ENABLE, [D4, D5, D6, D7],
+        backlight=BACKLIGHT, lines=2
+    )
+
     try:
-        RPIO.setmode(RPIO.BOARD)
-        lcd = LCD(
-            RS, ENABLE, [D4, D5, D6, D7],
-            lines=2, fourbitmode=True
-        )
+        lcd.enableBacklight()
+
+        lcd.clear()
         lcd.setCursor(0, 0)
-        lcd.printMessage('Hello')
-        lcd.setCursor(0, 1)
-        lcd.printMessage('World')
-        time.sleep(10)
+        lcd.write('Hello', justify=LCD.JUSTIFY_CENTER)
+        lcd.setCursor(1, 0)
+        lcd.write('World', justify=LCD.JUSTIFY_CENTER)
+        time.sleep(2)
+
+        lcd.clear()
+        lcd.setCursor(0, 0)
+        lcd.write('Check It Out!')
+        lcd.setCursor(1, 0)
+        lcd.write('Right Aligned!', justify=LCD.JUSTIFY_RIGHT)
+        time.sleep(2)
+
+        lcd.clear()
+        lcd.createChar(0, CUSTOM_CHARS[0])
+        lcd.createChar(1, CUSTOM_CHARS[1])
+        lcd.setCursor(0, 0)
+        lcd.write('Custom Characters!', justify=LCD.JUSTIFY_CENTER)
+        lcd.writeRaw(0, 1, 7)
+        lcd.writeRaw(1, 1, 8)
+        time.sleep(2)
+
+        def _write_percentage(percentage):
+            lcd.setBrightness(percentage)
+            lcd.setCursor(0, 0)
+            lcd.write('Backlight Test', justify=LCD.JUSTIFY_CENTER)
+            lcd.setCursor(1, 0)
+            lcd.write('Width: %%%03d' % percentage, justify=LCD.JUSTIFY_CENTER)
+            lcd.writeRaw(0, 1, 0)
+            lcd.writeRaw(1, 1, 15)
+
+        while 1:
+            for i in range(0, 100, 1):
+                _write_percentage(i)
+                time.sleep(0.02)
+
+            for i in range(100, 0, -1):
+                _write_percentage(i)
+                time.sleep(0.02)
+
     except KeyboardInterrupt:
         pass
+    lcd.cleanup()
     RPIO.cleanup()
 
 if __name__ == '__main__':

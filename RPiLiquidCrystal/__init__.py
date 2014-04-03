@@ -1,1 +1,1 @@
-import LCD
+from LCD import LCD
