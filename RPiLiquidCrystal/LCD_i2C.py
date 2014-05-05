@@ -35,7 +35,9 @@ class i2c_device:
     def read_block_data(self, cmd):
         return self.bus.read_block_data(self.addr, cmd)
 
-
+    # Clean up
+    def cleanup(self):
+        self.bus.close()
 
 
 class LCD:
@@ -87,6 +89,11 @@ class LCD:
     JUSTIFY_RIGHT           = 0x01
     JUSTIFY_CENTER          = 0x02
 
+
+    # Backlight settings
+    BACKLIGHT               = 0x08
+    NOBACKLIGHT             = 0x00
+
     # Special Bits
     ENABLE_BIT              = 0b00000100
     READ_WRITE_BIT          = 0b00000010
@@ -108,7 +115,7 @@ class LCD:
 
 
     def cleanup(self):
-        pass
+        self._i2c.cleanup()
 
 
     def clear(self):

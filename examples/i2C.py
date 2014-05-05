@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import time
 from RPiLiquidCrystal.LCD_i2C import LCD
 
 
@@ -35,7 +36,7 @@ def main():
         lcd.clear()
         lcd.setCursor(0, 0)
         lcd.write('Hello', justify=LCD.JUSTIFY_CENTER)
-        lcd.setCursor(1, 0)
+        lcd.setCursor(3, 0)
         lcd.write('World', justify=LCD.JUSTIFY_CENTER)
         time.sleep(2)
 
@@ -44,6 +45,10 @@ def main():
         lcd.write('Check It Out!')
         lcd.setCursor(1, 0)
         lcd.write('Right Aligned!', justify=LCD.JUSTIFY_RIGHT)
+        lcd.setCursor(2, 0)
+        lcd.write('Centered!', justify=LCD.JUSTIFY_CENTER)
+        lcd.setCursor(3, 0)
+        lcd.write('XXXXXXXXFILLXXXXXXXX')
         time.sleep(2)
 
         lcd.clear()
@@ -51,8 +56,8 @@ def main():
         lcd.createChar(1, CUSTOM_CHARS[1])
         lcd.setCursor(0, 0)
         lcd.write('Custom Characters!', justify=LCD.JUSTIFY_CENTER)
-        lcd.writeRaw(0, 1, 7)
-        lcd.writeRaw(1, 1, 8)
+        lcd.writeRaw(1, 1, 7)
+        lcd.writeRaw(2, 1, 8)
         time.sleep(2)
 
         while(1):
@@ -60,6 +65,8 @@ def main():
 
     except KeyboardInterrupt:
         pass
+
+    lcd.cleanup()
 
 if __name__ == '__main__':
     main()
