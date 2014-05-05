@@ -3,7 +3,7 @@ import smbus
 
 
 class i2c_device:
-    def __init__(self, addr=27, port=1):
+    def __init__(self, addr=0x27, port=1):
         self.addr = addr
         self.port = port
         self.bus = smbus.SMBus(port)

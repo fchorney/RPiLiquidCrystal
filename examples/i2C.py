@@ -30,7 +30,7 @@ def main():
 
 
     # Setup LCD Screen
-    lcd = LCD(27, cols=20, lines=4)
+    lcd = LCD(0x27, cols=20, lines=4)
 
     try:
         lcd.clear()
