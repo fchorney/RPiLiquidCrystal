@@ -32,7 +32,7 @@ def parse_args():
 
     parser.add_argument('ssid', type=str, help='wireless ssid')
     parser.add_argument('wip', type=str, help='wireless ip')
-    parser.add_argument('plugstats', type=str, help='wired plug status')
+    parser.add_argument('plugstatus', type=str, help='wired plug status')
     parser.add_argument('ip', type=str, help='wired ip')
 
     args = parser.parse_args()
