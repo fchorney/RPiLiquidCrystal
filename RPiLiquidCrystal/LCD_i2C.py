@@ -111,9 +111,6 @@ class LCD:
             LCD.BIT_MODE_4 | LCD.LINE_1 | LCD.DOTS_5_BY_8
         )
 
-        # Begin twice or else it fucks up every second run.
-        # why? because fuck you that's why
-        self.__begin()
         self.__begin()
 
     def cleanup(self):

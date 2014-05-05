@@ -13,13 +13,13 @@ def main():
     try:
         lcd.clear()
         lcd.setCursor(0, 0)
-        lcd.write('wlan0: %s' % args.ssid)
+        lcd.write('w0 %s' % args.wip)
         lcd.setCursor(1, 0)
-        lcd.write('wlan0: %s' % args.wip)
+        lcd.write('%s' % args.ssid)
         lcd.setCursor(2, 0)
-        lcd.write('eth0: %s' % args.plugstatus)
-        lcd.serCursor(3, 0)
-        lcd.write('eth0: %s' % args.ip)
+        lcd.write('e0 %s' % args.ip)
+        lcd.setCursor(3, 0)
+        lcd.write('%s' % args.plugstatus)
     except KeyboardInterrupt:
         pass
 
