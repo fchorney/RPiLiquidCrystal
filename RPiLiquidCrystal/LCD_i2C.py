@@ -146,6 +146,12 @@ class LCD:
         self.__write(location)
 
 
+    def enableBacklight(self):
+        self.__command(LCD.BACKLIGHT)
+
+    def disableBacklight(self):
+        self.__command(LCD.NOBACKLIGHT)
+
     def write(self, msg, justify=JUSTIFY_LEFT):
         if justify == LCD.JUSTIFY_RIGHT:
             msg = msg.rjust(self._columns)
@@ -263,14 +269,6 @@ class LCD:
         self.__delay_microseconds(5)
         self._i2c.write_cmd(((data & ~ LCD.ENABLE_BIT) | LCD.BACKLIGHT))
         self.__delay_microseconds(5)
-
-
-    def enableBacklight(self):
-        self.setBrightness(100)
-
-
-    def disableBacklight(self):
-        self.setBrightness(0)
 
 
     # Turn the display on/off (quickly)
