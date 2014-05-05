@@ -34,7 +34,6 @@ def main():
 
     try:
         lcd.clear()
-        lcd.enableBacklight()
         lcd.setCursor(0, 0)
         lcd.write('Hello', justify=LCD.JUSTIFY_CENTER)
         lcd.setCursor(3, 0)
@@ -62,8 +61,6 @@ def main():
         lcd.writeRaw(0, 2, 9)
         lcd.writeRaw(0, 2, 8)
         time.sleep(2)
-
-        lcd.disableBacklight()
 
         while(1):
             pass

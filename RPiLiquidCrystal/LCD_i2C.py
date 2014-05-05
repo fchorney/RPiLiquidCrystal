@@ -146,12 +146,6 @@ class LCD:
         self.__write(location)
 
 
-    def enableBacklight(self):
-        self.__command(LCD.BACKLIGHT)
-
-    def disableBacklight(self):
-        self.__command(LCD.NOBACKLIGHT)
-
     def write(self, msg, justify=JUSTIFY_LEFT):
         if justify == LCD.JUSTIFY_RIGHT:
             msg = msg.rjust(self._columns)
