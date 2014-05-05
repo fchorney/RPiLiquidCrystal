@@ -254,7 +254,7 @@ class LCD:
 
 
     def __write4bits(self, value):
-        self.i2c.write_cmd(value | LCD.BACKLIGHT)
+        self._i2c.write_cmd(value | LCD.BACKLIGHT)
         self.__pulse_enable(value)
 
 
