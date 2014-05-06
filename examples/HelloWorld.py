@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-import RPIO
+import RPIO as GPIO
 import time
-from RPiLiquidCrystal import LCD
+from RPiLiquidCrystal.HD44780 import HD44780
+from RPiLiquidCrystal.LCD import LCD
 
 
 def main():
@@ -50,23 +51,23 @@ def main():
 
         lcd.clear()
         lcd.setCursor(0, 0)
-        lcd.write('Hello', justify=LCD.JUSTIFY_CENTER)
+        lcd.write('Hello', justify=HD44780.JUSTIFY_CENTER)
         lcd.setCursor(1, 0)
-        lcd.write('World', justify=LCD.JUSTIFY_CENTER)
+        lcd.write('World', justify=HD44780.JUSTIFY_CENTER)
         time.sleep(2)
 
         lcd.clear()
         lcd.setCursor(0, 0)
         lcd.write('Check It Out!')
         lcd.setCursor(1, 0)
-        lcd.write('Right Aligned!', justify=LCD.JUSTIFY_RIGHT)
+        lcd.write('Right Aligned!', justify=HD44780.JUSTIFY_RIGHT)
         time.sleep(2)
 
         lcd.clear()
         lcd.createChar(0, CUSTOM_CHARS[0])
         lcd.createChar(1, CUSTOM_CHARS[1])
         lcd.setCursor(0, 0)
-        lcd.write('Custom Characters!', justify=LCD.JUSTIFY_CENTER)
+        lcd.write('Custom Characters!', justify=HD44780.JUSTIFY_CENTER)
         lcd.writeRaw(0, 1, 7)
         lcd.writeRaw(1, 1, 8)
         time.sleep(2)
@@ -74,9 +75,11 @@ def main():
         def _write_percentage(percentage):
             lcd.setBrightness(percentage)
             lcd.setCursor(0, 0)
-            lcd.write('Backlight Test', justify=LCD.JUSTIFY_CENTER)
+            lcd.write('Backlight Test', justify=HD44780.JUSTIFY_CENTER)
             lcd.setCursor(1, 0)
-            lcd.write('Width: %%%03d' % percentage, justify=LCD.JUSTIFY_CENTER)
+            lcd.write(
+                'Width: %%%03d' % percentage, justify=HD44780.JUSTIFY_CENTER
+            )
             lcd.writeRaw(0, 1, 0)
             lcd.writeRaw(1, 1, 15)
 
@@ -92,7 +95,7 @@ def main():
     except KeyboardInterrupt:
         pass
     lcd.cleanup()
-    RPIO.cleanup()
+    GPIO.cleanup()
 
 if __name__ == '__main__':
     main()

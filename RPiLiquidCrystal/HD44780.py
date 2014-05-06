@@ -1,8 +1,6 @@
-import time
-import RPIO as GPIO
-import RPIO.PWM as PWM
+from Utils import delay_microseconds
 
-class LCD:
+class HD44780:
     # Commands
     CLEAR_DISPLAY           = 0x01
     RETURN_HOME             = 0x02
@@ -52,71 +50,73 @@ class LCD:
     JUSTIFY_CENTER          = 0x02
 
 
-    def __init__(
-        self, rs, enable, pins,
-        backlight=None, rw=None,
-        cols=16, lines=1, dotsize=0
-    ):
-        self._rs = rs
-        self._rw = rw
-        self._enable = enable
-        self._data_pins = pins
-        self._numlines = lines
-        self._columns = cols
-        self._dotsize = dotsize
-        self._backlight = backlight
+    # Write Modes
+    WRITE_MODE_CMD          = 0x00
+    WRITE_MODE_CHAR         = 0x01
 
-        # Setup PWM is backlight is defined
-        if self._backlight:
-            PWM.setup()
-            PWM.init_channel(0)
-            self.enableBacklight()
 
-        # Setup rs, enable and rw pins
-        GPIO.setup(self._rs, GPIO.OUT)
-        GPIO.setup(self._enable, GPIO.OUT)
-        if self._rw:
-            GPIO.setup(self._rw, GPIO.OUT)
+    def __init__(self, protocol):
+        # Keep Protocol
+        self.protocol = protocol
+
+        # Initialize
+        self.__initialize()
 
         # Set Display Function
-        self._display_function = (
-            LCD.BIT_MODE_4 | LCD.LINE_1 | LCD.DOTS_5_BY_8
+        self.__display_function = (
+            HD44780.BIT_MODE_4 | HD44780.LINE_1 | HD44780.DOTS_5_BY_8
         )
-        if len(pins) == 8:
-            self._display_function = (
-                LCD.BIT_MODE_8 | LCD.LINE_1 | LCD.DOTS_5_BY_8
-            )
 
         self.__begin()
 
 
+    # Internal Protocol Functions
+    def __initialize(self):
+        self.protocol.initialize()
+
+
+    def __send(self, value, mode):
+        self.protocol.send(value, mode)
+
+
+    def __write4bits(self, value):
+        self.protocol.write4bits(value)
+
+
+    # External Protocol Functions
+    def enableBacklight(self, intensity=100):
+        self.protocol.enableBacklight(intensity)
+
+
+    def disableBacklight(self):
+        self.protocol.disableBacklight()
+
+
     def cleanup(self):
-        if self._backlight:
-            PWM.clear_channel_gpio(0, self._backlight)
-            PWM.cleanup()
-        GPIO.cleanup()
+        self.protocol.cleanup()
+
 
     def clear(self):
         # Clear the display, set the cursor position to zero
-        self.__command(LCD.CLEAR_DISPLAY)
+        self.__command(HD44780.CLEAR_DISPLAY)
         # This command takes a long time
-        self.__delay_microseconds(2000)
+        delay_microseconds(2000)
 
 
     def home(self):
         # Set cursor position to zero
-        self.__command(LCD.RETURN_HOME)
+        self.__command(HD44780.RETURN_HOME)
         # This command takes a long time
-        self.__delay_microseconds(2000)
+        delay_microseconds(2000)
 
 
     def setCursor(self, row, col):
         row_offsets = [0x00, 0x40, 0x14, 0x54]
-        if row > self._numlines:
+        if row > self.protocol.numlines:
             # We count rows starting with 0
-            row = self._numlines - 1
+            row = self.protocol.numlines - 1
 
-        self.__command(LCD.SET_DDRAM_ADDR | (col + row_offsets[row]))
+        self.__command(HD44780.SET_DDRAM_ADDR | (col + row_offsets[row]))
 
 
     def writeRaw(self, location, row, col):
@@ -125,12 +125,12 @@ class LCD:
 
 
     def write(self, msg, justify=JUSTIFY_LEFT):
-        if justify == LCD.JUSTIFY_RIGHT:
-            msg = msg.rjust(self._columns)
-        elif justify == LCD.JUSTIFY_CENTER:
-            msg = msg.center(self._columns)
+        if justify == HD44780.JUSTIFY_RIGHT:
+            msg = msg.rjust(self.protocol.columns)
+        elif justify == HD44780.JUSTIFY_CENTER:
+            msg = msg.center(self.protocol.columns)
         else:
-            msg = msg.ljust(self._columns)
+            msg = msg.ljust(self.protocol.columns)
 
         for ch in msg:
             self.__write(ord(ch))
@@ -140,71 +140,53 @@ class LCD:
     # with custom characters
     def createChar(self, location, charmap):
         location &= 0x07
-        self.__command(LCD.SET_CGRAM_ADDR | (location << 3))
+        self.__command(HD44780.SET_CGRAM_ADDR | (location << 3))
         for i in range(0, 8):
             self.__write(charmap[i])
 
 
     def __begin(self):
         # Assume two lines is lines is not 1
-        if self._numlines > 1:
-            self._display_function |= LCD.LINE_2
+        if self.protocol.numlines > 1:
+            self.__display_function |= HD44780.LINE_2
 
         # For some 1 line displays, you can select a 10 pixel high font
         # If dotsize is not 0, assume 5x10 pixel size
-        if self._dotsize != 0 and self._numlines == 1:
-            self._display_function |= LCD.DOTS_5_BY_10
+        if self.protocol.dotsize != 0 and self.protocol.numlines == 1:
+            self.__display_function |= HD44780.DOTS_5_BY_10
 
         # According to the datasheet, we need at least 40 ms after power rises
         # above 2.7v before sending commands. We'll wait 50ms to be sage
-        self.__delay_microseconds(50000)
+        delay_microseconds(50000)
 
-        # Now we pull RS, Enable and R/W low to begin commands
-        GPIO.output(self._rs, GPIO.LOW)
-        GPIO.output(self._enable, GPIO.LOW)
-        if self._rw:
-            GPIO.output(self._rw, GPIO.LOW)
+        # Call the protocols begin function here
+        self.protocol.begin()
 
-        # Put the LCD into 4 bit or 8 bit mode
-        if not self._display_function & LCD.BIT_MODE_8:
-            # This is according to the hitachi HD44780 datasheet
-            # figure 24, pg 46
+        # Put the LCD into 4 bit mode
+        # This is according to the hitachi HD44780 datasheet
+        # figure 24, pg 46
 
-            # We start in 8-bit mode, try to set 4 bit mode
-            self.__write4bits(0x03)
-            self.__delay_microseconds(4500)
+        # We start in 8-bit mode, try to set 4 bit mode
+        self.__write4bits(0x03)
+        delay_microseconds(4500)
 
-            # Second try
-            self.__write4bits(0x03)
-            self.__delay_microseconds(4500)
+        # Second try
+        self.__write4bits(0x03)
+        delay_microseconds(4500)
 
-            # Third go
-            self.__write4bits(0x03)
-            self.__delay_microseconds(150)
+        # Third go
+        self.__write4bits(0x03)
+        delay_microseconds(150)
 
-            # Finally, set to 8-bit interface
-            self.__write4bits(0x02)
-        else:
-            # This is according to the hitachi HD44780 datasheet
-            # figure 23, pg 45
-
-            # Send function set command sequence
-            self.__command(LCD.FUNCTION_SET | self._display_function)
-            self.__delay_microseconds(4500)
-
-            # Second try
-            self.__command(LCD.FUNCTION_SET | self._display_function)
-            self.__delay_microseconds(150)
-
-            # Thrid go
-            self.__command(LCD.FUNCTION_SET | self._display_function)
+        # Finally, set to 4-bit interface
+        self.__write4bits(0x02)
 
         # Finally set the number of lines, font size, etc
-        self.__command(LCD.FUNCTION_SET | self._display_function)
+        self.__command(HD44780.FUNCTION_SET | self.__display_function)
 
         # Turn the display on with no cursor or blinking by default
-        self._display_control = (
-            LCD.DISPLAY_ON | LCD.CURSOR_OFF | LCD.BLINK_OFF
+        self.__display_control = (
+            HD44780.DISPLAY_ON | HD44780.CURSOR_OFF | HD44780.BLINK_OFF
         )
         self.display()
 
@@ -212,141 +194,76 @@ class LCD:
         self.clear()
 
         # Initialize to default text direction (for romance languages)
-        self._display_mode = LCD.ENTRY_LEFT | LCD.ENTRY_SHIFT_DECREMENT
+        self.__display_mode = (
+            HD44780.ENTRY_LEFT | HD44780.ENTRY_SHIFT_DECREMENT
+        )
 
         # Set the entry mode
-        self.__command(LCD.ENTRY_MODE_SET | self._display_mode)
-
-
-    def __delay_microseconds(self, microseconds):
-        seconds = float(microseconds) * 0.000001
-        time.sleep(seconds)
+        self.__command(HD44780.ENTRY_MODE_SET | self.__display_mode)
 
 
     def __command(self, value):
-        self.__send(value, GPIO.LOW)
+        self.__send(value, HD44780.WRITE_MODE_CMD)
 
 
     def __write(self, value):
-        self.__send(value, GPIO.HIGH)
-
-
-    def __send(self, value, mode):
-        GPIO.output(self._rs, mode)
-
-        # If there is an RW pin incicated, set it to low to write
-        if self._rw:
-            GPIO.output(self._rw, GPIO.LOW)
-
-        if self._display_function & LCD.BIT_MODE_8:
-            self.__write8bits(value)
-        else:
-            self.__write4bits(value>>4)
-            self.__write4bits(value)
-
-
-    def __write_bits(self, value, numberofbits=8):
-        for i in range(0, numberofbits):
-            GPIO.setup(self._data_pins[i], GPIO.OUT)
-            GPIO.output(self._data_pins[i], (value >> i) & 0x01)
-        self.__pulse_enable()
-
-
-    def __write8bits(self, value):
-        self.__write_bits(value)
-
-
-    def __write4bits(self, value):
-        self.__write_bits(value, numberofbits=4)
-
-
-    def __pulse_enable(self):
-        GPIO.output(self._enable, GPIO.LOW)
-        self.__delay_microseconds(1)
-        GPIO.output(self._enable, GPIO.HIGH)
-        self.__delay_microseconds(1)
-        GPIO.output(self._enable, GPIO.LOW)
-        self.__delay_microseconds(100)
-
-
-    def setBrightness(self, intensity):
-        # If no backlight pin is assigned, just return
-        if not self._backlight:
-            return
-
-        # Clamp our intensity to be between 0 and 100 percent
-        if intensity > 100:
-            intensity = 100
-        if intensity < 0:
-            intensity = 0
-
-        # Maximum width is 1999 based on the 20000us subcycle
-        width = int(1999.0 * (intensity / 100.0))
-
-        # Set PWM
-        PWM.add_channel_pulse(0, self._backlight, 0, width)
-
-
-    def enableBacklight(self):
-        self.setBrightness(100)
-
-
-    def disableBacklight(self):
-        self.setBrightness(0)
+        self.__send(value, HD44780.WRITE_MODE_CHAR)
 
 
     # Turn the display on/off (quickly)
     def noDisplay(self):
-        self._display_control &= ~LCD.DISPLAY_ON
-        self.__command(LCD.DISPLAY_CONTROL | self._display_control)
+        self.__display_control &= ~HD44780.DISPLAY_ON
+        self.__command(HD44780.DISPLAY_CONTROL | self.__display_control)
 
 
     def display(self):
-        self._display_control |= LCD.DISPLAY_ON
-        self.__command(LCD.DISPLAY_CONTROL | self._display_control)
+        self.__display_control |= HD44780.DISPLAY_ON
+        self.__command(HD44780.DISPLAY_CONTROL | self.__display_control)
 
 
     # Turns the underline cursor on/off
     def noCursor(self):
-        self._display_control &= ~LCD.CURSO_RON
-        self.__command(LCD.DISPLAY_CONTROL | self._display_control)
+        self.__display_control &= ~HD44780.CURSO_RON
+        self.__command(HD44780.DISPLAY_CONTROL | self.__display_control)
 
 
     def cursor(self):
-        self._display_control |= LCD.CURSOR_ON
-        self.__command(LCD.DISPLAY_CONTROL | self._display_control)
+        self.__display_control |= HD44780.CURSOR_ON
+        self.__command(HD44780.DISPLAY_CONTROL | self.__display_control)
 
 
     # These commands scroll the display without changing the RAM
     def scrollDisplayLeft(self):
-        self.__command(LCD.CURSOR_SHIFT | LCD.DISPLAY_MOVE | LCD.MOVE_LEFT)
+        self.__command(
+            HD44780.CURSOR_SHIFT | HD44780.DISPLAY_MOVE | HD44780.MOVE_LEFT
+        )
 
 
     def scrollDisplayRight(self):
-        self.__command(LCD.CURSOR_SHIFT | LCD.DISPLAY_MOVE | LCD.MOVE_RIGHT)
+        self.__command(
+            HD44780.CURSOR_SHIFT | HD44780.DISPLAY_MOVE | HD44780.MOVE_RIGHT
+        )
 
 
     # This is for text that flows Left to Right
     def leftToRight(self):
-        self._display_mode |= LCD.ENTRY_LEFT;
-        self.__command(LCD.ENTRY_MODE_SET | self._display_mode)
+        self.__display_mode |= HD44780.ENTRY_LEFT;
+        self.__command(HD44780.ENTRY_MODE_SET | self.__display_mode)
 
 
     # This is for text that flows Right to Left
     def rightToLeft(self):
-        self._display_mode &= ~LCD.ENTRY_LEFT;
-        self.__command(LCD.ENTRY_MODE_SET | self._display_mode)
+        self.__display_mode &= ~HD44780.ENTRY_LEFT;
+        self.__command(HD44780.ENTRY_MODE_SET | self.__display_mode)
 
 
     # This will 'right justify' text from the cursor
     def autoscroll(self):
-        self._display_mode |= LCD.ENTRY_SHIFT_INCREMENT
-        self.__command(LCD.ENTRY_MODE_SET | self._display_mode)
+        self.__display_mode |= HD44780.ENTRY_SHIFT_INCREMENT
+        self.__command(HD44780.ENTRY_MODE_SET | self.__display_mode)
 
 
     # This will 'left justify' text from the cursor
     def noAutoscroll(self):
-        self._display_mode &= ~LCD.ENTRY_SHIFT_INCREMENT
-        self.__command(LCD.ENTRY_MODE_SET | self._display_mode)
-
-
+        self.__display_mode &= ~HD44780.ENTRY_SHIFT_INCREMENT
+        self.__command(HD44780.ENTRY_MODE_SET | self.__display_mode)
