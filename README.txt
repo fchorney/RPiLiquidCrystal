@@ -21,7 +21,7 @@ Typical usage often looks like this::
 Initialize
 ==========
 
-The RPiLiquidCrystal library assumed 4-bit mode, because who would use 8 data lines!
+The RPiLiquidCrystal library assumes 4-bit mode, because who would use 8 data lines!
 This library can be used for a wired interface, as well as an i2C interface.
 
 Initializing for a wired interface::
@@ -34,7 +34,7 @@ Initializing for an i2C interface::
 
 R/W Pin
 -------
-If an R/W pin is to be used, you can set it in the optional parameters::
+If an R/W pin is to be used, you can set it in the optional parameters (for the wired interface only)::
 
     lcd = LCD(rs, enable, [d4, d5, d6, d7], rw=rw)
 
