@@ -223,7 +223,7 @@ class HD44780:
 
     # Turns the underline cursor on/off
     def noCursor(self):
-        self.__display_control &= ~HD44780.CURSO_RON
+        self.__display_control &= ~HD44780.CURSOR_ON
         self.__command(HD44780.DISPLAY_CONTROL | self.__display_control)
 
 
