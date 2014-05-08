@@ -2,7 +2,10 @@
 RPiLiquidCrystal
 ================
 
-A port of the Arduino LiquidCrystal library to Python for use with the Raspberry Pi.
+A port of the Arduino LiquidCrystal library  to Python for use with the Raspberry Pi.
+
+Based on code from https://github.com/adafruit/LiquidCrystal
+
 Typical usage often looks like this::
 
     #!/usr/bin/env python
@@ -52,4 +55,6 @@ Contributors
 ============
 
 Fernando Chorney
+
+Based on code from https://github.com/adafruit/LiquidCrystal
 
