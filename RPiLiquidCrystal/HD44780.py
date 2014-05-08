@@ -100,14 +100,14 @@ class HD44780:
         # Clear the display, set the cursor position to zero
         self.__command(HD44780.CLEAR_DISPLAY)
         # This command takes a long time
-        delay_microseconds(2000)
+        delay_microseconds(16000)
 
 
     def home(self):
         # Set cursor position to zero
         self.__command(HD44780.RETURN_HOME)
         # This command takes a long time
-        delay_microseconds(2000)
+        delay_microseconds(16000)
 
 
     def setCursor(self, row, col):
@@ -167,19 +167,20 @@ class HD44780:
         # figure 24, pg 46
 
         # We start in 8-bit mode, try to set 4 bit mode
-        self.__write4bits(0x03)
-        delay_microseconds(4500)
+        self.__write4bits(0x30)
+        delay_microseconds(5000)
 
         # Second try
-        self.__write4bits(0x03)
-        delay_microseconds(4500)
+        self.__write4bits(0x30)
+        delay_microseconds(200)
 
         # Third go
-        self.__write4bits(0x03)
-        delay_microseconds(150)
+        self.__write4bits(0x30)
+        delay_microseconds(40)
 
         # Finally, set to 4-bit interface
-        self.__write4bits(0x02)
+        self.__write4bits(0x20)
+        delay_microseconds(40)
 
         # Finally set the number of lines, font size, etc
         self.__command(HD44780.FUNCTION_SET | self.__display_function)

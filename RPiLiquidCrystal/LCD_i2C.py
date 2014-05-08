@@ -75,11 +75,7 @@ class LCD_Protocol():
 
 
     def begin(self):
-        self.write4bits(0)
-        delay_microseconds(5)
-        self.write4bits(0)
-        delay_microseconds(5)
-
+        pass
 
     def send(self, value, mode):
         self.write4bits(mode | (value & 0xF0))
@@ -89,6 +85,7 @@ class LCD_Protocol():
     def write4bits(self, value):
         self.__i2c_bus.write_cmd(value | LCD_Protocol.BACKLIGHT)
         self.__pulse_enable(value)
+
 
     # XXX: Figure out how to control the backlight through i2C code
     def enableBacklight(self, intensity=100):

@@ -54,14 +54,14 @@ class LCD_Protocol():
             GPIO.output(self.__rw, GPIO.LOW)
 
         # Write both nibbles
-        self.write4bits(value>>4)
-        self.write4bits(value)
+        self.write4bits(value & 0xF0)
+        self.write4bits((value << 4) & 0xF0)
 
 
     def write4bits(self, value):
         for i in range(0, 4):
             GPIO.setup(self.__data_pins[i], GPIO.OUT)
-            GPIO.output(self.__data_pins[i], (value >> i) & 0x01)
+            GPIO.output(self.__data_pins[i], (value >> i) & 0x10)
         self.__pulse_enable()
 
 
